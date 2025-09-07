@@ -1,0 +1,3 @@
+apps/*/.env.local
+apps/*/values/*.rendered.yaml
+apps/*/charts/*

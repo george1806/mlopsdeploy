@@ -1,0 +1,59 @@
+# --- Image (from Harbor) ---
+image:
+  registry: "__HARBOR_URL__"
+  repository: "__HARBOR_PROJECT__/traefik"
+  tag: "__TRAEFIK_TAG__"
+  pullPolicy: IfNotPresent
+
+# --- Service exposure ---
+service:
+  enabled: true
+  type: "__TRAEFIK_SERVICE_TYPE__"
+
+# --- Ports (v37.x schema requires expose as object) ---
+ports:
+  web:
+    port: 80
+    expose:
+      default: true
+  websecure:
+    port: 443
+    expose:
+      default: true
+
+# --- Enable built-in dashboard route ---
+ingressRoute:
+  dashboard:
+    enabled: true
+
+# --- Extra objects: custom dashboard IngressRoute with hostname ---
+extraObjects:
+  - apiVersion: traefik.containo.us/v1alpha1
+    kind: IngressRoute
+    metadata:
+      name: traefik-dashboard-host
+      namespace: traefik
+    spec:
+      entryPoints:
+        - web
+      routes:
+        - match: Host(`traefik.local`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
+          kind: Rule
+          services:
+            - name: api@internal
+              kind: TraefikService
+
+# --- Additional CLI arguments ---
+additionalArguments:
+  - "--api.dashboard=true"
+  - "--accesslog=true"
+  - "--log.level=INFO"
+
+# --- Resources ---
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
