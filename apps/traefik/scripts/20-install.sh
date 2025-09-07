@@ -44,6 +44,23 @@ ensure_namespace() {
     --dry-run=client -o yaml | kubectl apply -f -
 }
 
+install_crds() {
+  local chart_file="$1"
+  echo "🔹 Installing CRDs from chart..."
+  # Extract CRDs from the chart tgz into a temp dir and apply them
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  tar -xzf "$chart_file" -C "$tmpdir" traefik/crds >/dev/null 2>&1 || true
+
+  if [[ -d "$tmpdir/traefik/crds" ]] && compgen -G "$tmpdir/traefik/crds/*.yaml" > /dev/null; then
+    kubectl apply -f "$tmpdir/traefik/crds"
+  else
+    echo "ℹ️  No CRDs directory found in chart; skipping."
+  fi
+
+  rm -rf "$tmpdir"
+}
+
 install_chart() {
   local chart_file="$1"
   echo "🚀 Installing Traefik"
@@ -60,6 +77,7 @@ main() {
   chart_file=$(find_chart)
   render_values
   ensure_namespace
+  install_crds "$chart_file"
   install_chart "$chart_file"
 
   echo "✅ Traefik installed."
