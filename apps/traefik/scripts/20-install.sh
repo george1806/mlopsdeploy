@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,25 +40,17 @@ render_values() {
 
 ensure_namespace() {
   echo "🔹 Ensuring namespace: ${TRAEFIK_NAMESPACE}"
-  kubectl create namespace "${TRAEFIK_NAMESPACE}" \
-    --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create namespace "${TRAEFIK_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 }
 
-install_crds() {
-  local chart_file="$1"
-  echo "🔹 Installing CRDs from chart..."
-  # Extract CRDs from the chart tgz into a temp dir and apply them
-  local tmpdir
-  tmpdir="$(mktemp -d)"
-  tar -xzf "$chart_file" -C "$tmpdir" traefik/crds >/dev/null 2>&1 || true
-
-  if [[ -d "$tmpdir/traefik/crds" ]] && compgen -G "$tmpdir/traefik/crds/*.yaml" > /dev/null; then
-    kubectl apply -f "$tmpdir/traefik/crds"
-  else
-    echo "ℹ️  No CRDs directory found in chart; skipping."
-  fi
-
-  rm -rf "$tmpdir"
+create_pull_secret() {
+  echo "🔹 Creating/Updating imagePullSecret for Harbor"
+  kubectl delete secret harbor-creds -n "${TRAEFIK_NAMESPACE}" --ignore-not-found
+  kubectl create secret docker-registry harbor-creds \
+    --docker-server="${HARBOR_URL}" \
+    --docker-username="${HARBOR_USER}" \
+    --docker-password="${HARBOR_ADMIN_PASSWORD}" \
+    -n "${TRAEFIK_NAMESPACE}"
 }
 
 install_chart() {
@@ -66,9 +58,11 @@ install_chart() {
   echo "🚀 Installing Traefik"
   echo "   Chart : $(basename "$chart_file")"
   echo "   Image : ${HARBOR_URL}/${HARBOR_PROJECT}/traefik:${TRAEFIK_TAG}"
+
   helm upgrade --install "${TRAEFIK_RELEASE_NAME}" "$chart_file" \
     --namespace "$TRAEFIK_NAMESPACE" \
-    -f "$VALUES_OUT"
+    -f "$VALUES_OUT" \
+    --set imagePullSecrets[0].name=harbor-creds
 }
 
 main() {
@@ -77,7 +71,7 @@ main() {
   chart_file=$(find_chart)
   render_values
   ensure_namespace
-  install_crds "$chart_file"
+  create_pull_secret
   install_chart "$chart_file"
 
   echo "✅ Traefik installed."
