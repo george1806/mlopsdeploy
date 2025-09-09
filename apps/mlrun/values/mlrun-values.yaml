@@ -25,13 +25,13 @@ mlrun:
       enabled: true
       className: "traefik"
       hosts:
-        - host: mlrun.core.harbor.domain
+        - host: api.mlrun.core.harbor.domain
           paths:
             - path: /
               pathType: Prefix
       tls:
         - hosts:
-            - mlrun.core.harbor.domain
+            - api.mlrun.core.harbor.domain
           secretName: harbor-ingress
 
   jupyter:
@@ -93,11 +93,3 @@ mlrun:
         - hosts:
             - prometheus.mlrun.core.harbor.domain
           secretName: harbor-ingress
-# ---------------------------------
-# Keycloak Integration (Optional)
-# ---------------------------------
-#auth:
-#  enabled: true
-#  oidcIssuer: "https://keycloak.core.harbor.domain/realms/mlrun"
-#  clientId: "mlrun"
-#  clientSecret: "CHANGE_ME"
