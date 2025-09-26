@@ -1,0 +1,87 @@
+global:
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: ${HARBOR_URL}
+  repository: ${HARBOR_PROJECT}/keycloak
+  tag: "${KEYCLOAK_TAG}"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-creds
+
+replicaCount: 1 # HA-ready
+
+auth:
+  adminUser: ${KEYCLOAK_ADMIN_USER}
+  adminPassword: ${KEYCLOAK_ADMIN_PASSWORD}
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hostname: ${KEYCLOAK_HOST}
+  tls: true
+  extraTls:
+    - hosts:
+        - ${KEYCLOAK_HOST}
+      secretName: ${TLS_SECRET_NAME}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+
+postgresql:
+  enabled: false # we are using external PostgreSQL
+
+externalDatabase:
+  host: ${KEYCLOAK_DB_HOST}
+  port: ${KEYCLOAK_DB_PORT}
+  user: ${KEYCLOAK_DB_USER}
+  password: ${KEYCLOAK_DB_PASSWORD}
+  database: ${KEYCLOAK_DB_NAME}
+
+extraEnvVars:
+  - name: KC_PROXY
+    value: "edge" # required behind Traefik
+  - name: JAVA_OPTS
+    value: "-Xms512m -Xmx1024m"
+
+# --- Health probes (correct schema for chart v25.x) ---
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /realms/master
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /realms/master
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  failureThreshold: 10
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /realms/master
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 2Gi
