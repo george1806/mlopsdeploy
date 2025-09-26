@@ -49,6 +49,17 @@ extraEnvVars:
     value: "edge" # required behind Traefik
   - name: JAVA_OPTS
     value: "-Xms512m -Xmx1024m"
+  # Legacy Bitnami database environment variables
+  - name: KEYCLOAK_DATABASE_HOST
+    value: "${KEYCLOAK_DB_HOST}"
+  - name: KEYCLOAK_DATABASE_PORT
+    value: "${KEYCLOAK_DB_PORT}"
+  - name: KEYCLOAK_DATABASE_NAME
+    value: "${KEYCLOAK_DB_NAME}"
+  - name: KEYCLOAK_DATABASE_USER
+    value: "${KEYCLOAK_DB_USER}"
+  - name: KEYCLOAK_DATABASE_PASSWORD
+    value: "${KEYCLOAK_DB_PASSWORD}"
 
 # --- Health probes (correct schema for chart v25.x) ---
 livenessProbe:
@@ -76,3 +87,8 @@ resources:
   limits:
     cpu: 1
     memory: 2Gi
+
+# Re-enable init container since we're using Bitnami-compatible image
+defaultInitContainers:
+  prepareWriteDirs:
+    enabled: true
