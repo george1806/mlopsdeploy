@@ -1,7 +1,7 @@
 image:
   registry: ${HARBOR_URL}
   repository: ${HARBOR_PROJECT}/postgresql
-  tag: "${POSTGRES_TAG}"
+  tag: "${POSTGRES_IMAGE_TAG}"
   pullPolicy: IfNotPresent
 
 auth:

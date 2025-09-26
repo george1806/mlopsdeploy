@@ -27,7 +27,7 @@ function create_image_pull_secret() {
 function install_chart() {
   local chart_tgz
   chart_tgz=$(ls "$CHARTS_DIR"/postgresql-*.tgz | head -n1)
-  echo "🚀 Installing PostgreSQL (Keycloak) v${POSTGRES_TAG}..."
+  echo "🚀 Installing PostgreSQL (Keycloak) v${POSTGRES_IMAGE_TAG}..."
   helm upgrade --install "$POSTGRES_HELM_RELEASE" "$chart_tgz" \
     --namespace "$POSTGRES_NAMESPACE" \
     -f "$VALUES_DIR/postgresql-values.rendered.yaml" \

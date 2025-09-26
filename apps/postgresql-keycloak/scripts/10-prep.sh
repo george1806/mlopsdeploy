@@ -16,9 +16,9 @@ function prepare_dirs() {
 }
 
 function pull_chart() {
-  echo "📦 Pulling PostgreSQL Helm chart..."
+  echo "📦 Pulling PostgreSQL Helm chart v${POSTGRES_CHART_VERSION}..."
   helm pull bitnami/postgresql \
-    --version "${POSTGRES_TAG}" \
+    --version "${POSTGRES_CHART_VERSION}" \
     --untar=false \
     --destination "$CHARTS_DIR"
 }
