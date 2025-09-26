@@ -10,6 +10,17 @@ service:
   enabled: true
   type: "__TRAEFIK_SERVICE_TYPE__"
 
+# --- Use hostNetwork to bind directly to node ports 80/443 ---
+hostNetwork: true
+
+# --- Security context for privileged ports ---
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  capabilities:
+    add:
+      - NET_BIND_SERVICE
+
 # --- Ports (v37.x schema requires expose as object) ---
 ports:
   web:
