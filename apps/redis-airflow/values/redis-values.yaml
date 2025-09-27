@@ -1,0 +1,24 @@
+image:
+  registry: ${HARBOR_URL}
+  repository: ${HARBOR_PROJECT}/redis
+  tag: "${REDIS_TAG}"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-creds
+
+architecture: standalone
+
+auth:
+  enabled: true
+  password: ${REDIS_PASSWORD}
+
+master:
+  persistence:
+    enabled: true
+    size: 5Gi
+    accessModes: [ReadWriteOnce]
+
+service:
+  type: ClusterIP
+  port: ${REDIS_PORT}
