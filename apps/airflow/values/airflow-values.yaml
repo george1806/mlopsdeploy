@@ -1,0 +1,73 @@
+images:
+  airflow:
+    repository: ${HARBOR_URL}/${HARBOR_PROJECT}/airflow
+    tag: "${AIRFLOW_TAG}"
+    pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-creds
+
+executor: ${AIRFLOW_EXECUTOR}
+
+# Airflow version
+airflowVersion: 3.0.2
+
+# Disable bundled DB/Redis
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+
+# External PostgreSQL and Redis configuration
+data:
+  metadataConnection:
+    user: ${AIRFLOW_DB_USER}
+    pass: ${AIRFLOW_DB_PASSWORD}
+    protocol: postgresql
+    host: ${AIRFLOW_DB_HOST}
+    port: ${AIRFLOW_DB_PORT}
+    db: ${AIRFLOW_DB_NAME}
+    sslmode: disable
+  brokerUrl: redis://:${AIRFLOW_REDIS_PASSWORD}@${AIRFLOW_REDIS_HOST}:${AIRFLOW_REDIS_PORT}/0
+
+# Static secret keys for production
+apiSecretKey: airflow-api-secret-key-change-me-in-production
+jwtSecret: airflow-jwt-secret-change-me-in-production
+webserverSecretKey: airflow-webserver-secret-key-change-me-in-production
+
+# Ingress via Traefik + TLS
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  web:
+    hosts:
+      - ${AIRFLOW_HOST}
+    tls:
+      enabled: true
+      secretName: ${TLS_SECRET_NAME}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+
+# Persistence for logs
+persistence:
+  enabled: true
+  size: 20Gi
+  accessMode: ReadWriteOnce
+
+# OIDC Auth (Keycloak)
+webserver:
+  env:
+    - name: AIRFLOW__WEBSERVER__RBAC
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__AUTHENTICATE
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__AUTH_BACKEND
+      value: "airflow.providers.fab.auth_manager"
+    - name: OIDC_CLIENT_ID
+      value: "${KEYCLOAK_CLIENT_ID}"
+    - name: OIDC_CLIENT_SECRET
+      value: "${KEYCLOAK_CLIENT_SECRET}"
+    - name: OIDC_METADATA_URL
+      value: "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration"
+    - name: OIDC_SCOPE
+      value: "openid email profile"
