@@ -1,0 +1,26 @@
+image:
+  registry: ${HARBOR_URL}
+  repository: ${HARBOR_PROJECT}/postgresql
+  tag: "${POSTGRES_TAG}"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-creds
+
+auth:
+  postgresPassword: ${POSTGRES_PASSWORD}
+  username: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+  database: ${POSTGRES_DB}
+
+architecture: standalone
+
+primary:
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessModes: [ReadWriteOnce]
+
+service:
+  type: ClusterIP
+  port: ${POSTGRES_PORT}
