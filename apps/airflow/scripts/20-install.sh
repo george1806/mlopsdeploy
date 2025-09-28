@@ -33,6 +33,16 @@ check_tls_secret() {
   fi
 }
 
+ensure_webserver_secret() {
+  if ! kubectl -n "$AIRFLOW_NAMESPACE" get secret airflow-webserver-secret-key &>/dev/null; then
+    echo "🔑 Creating airflow-webserver-secret-key..."
+    kubectl -n "$AIRFLOW_NAMESPACE" create secret generic airflow-webserver-secret-key \
+      --from-literal=webserver-secret-key=$(openssl rand -hex 32)
+  else
+    echo "✅ airflow-webserver-secret-key already exists"
+  fi
+}
+
 check_chart_exists() {
   if ! ls "$CHARTS_DIR"/airflow-*.tgz &>/dev/null; then
     echo "❌ No Airflow chart found in $CHARTS_DIR"
@@ -76,6 +86,7 @@ load_env
 ensure_namespace
 create_image_pull_secret
 check_tls_secret
+ensure_webserver_secret
 check_chart_exists
 check_values_rendered
 install_chart

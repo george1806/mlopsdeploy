@@ -1,3 +1,7 @@
+global:
+  security:
+    allowInsecureImages: true
+
 images:
   airflow:
     repository: ${HARBOR_URL}/${HARBOR_PROJECT}/airflow
@@ -42,7 +46,7 @@ data:
 fernetKey: "fernet-key-change-me-in-production-32-char-key"
 webserverSecretKey: "webserver-secret-key-change-me-in-production"
 
-# ✅ Disable migrations
+# ✅ Disable migrations (handled manually/patch)
 migrateDatabaseJob:
   enabled: false
 
@@ -82,7 +86,7 @@ scheduler:
       memory: "512Mi"
       cpu: "250m"
 
-# OIDC Auth (Keycloak) + webserver configuration
+# Webserver (FAB auth, default port 8080)
 webserver:
   enabled: true
   replicas: 1
@@ -99,7 +103,7 @@ webserver:
     type: ClusterIP
     ports:
       - name: airflow-ui
-        port: 8082
+        port: 8080 # ✅ restored default port
   defaultUser:
     enabled: true
     role: Admin
@@ -114,23 +118,8 @@ webserver:
     - name: AIRFLOW__WEBSERVER__AUTHENTICATE
       value: "True"
     - name: AIRFLOW__WEBSERVER__AUTH_BACKEND
-      value: "airflow.auth.backends.generic_oauth"
-    - name: AIRFLOW__WEBSERVER__OAUTH_PROVIDERS
-      value: |
-        [{
-          "name": "keycloak",
-          "icon": "fa-openid",
-          "token_key": "access_token",
-          "remote_app": {
-            "client_id": "${KEYCLOAK_CLIENT_ID}",
-            "client_secret": "${KEYCLOAK_CLIENT_SECRET}",
-            "api_base_url": "${KEYCLOAK_HOST}",
-            "client_kwargs": {"scope": "openid email profile"},
-            "access_token_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token",
-            "authorize_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth",
-            "request_token_url": null
-          }
-        }]
+      value: "airflow.providers.fab.auth_manager.auth.FabAuthManager"
+    # ❌ removed old OAUTH_PROVIDERS block (incompatible with Airflow 3.x)
 
 workers:
   waitForMigrations:
@@ -166,3 +155,8 @@ apiServer:
     limits:
       memory: "1Gi"
       cpu: "500m"
+  env:
+    - name: AIRFLOW__API__AUTH_BACKEND
+      value: "airflow.api.auth.backend.default"
+    - name: AIRFLOW__API__ENABLE_EXPERIMENTAL_API
+      value: "True"
