@@ -5,6 +5,7 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${APP_DIR}/.env.local"
 CHARTS_DIR="${APP_DIR}/charts"
 VALUES_DIR="${APP_DIR}/values"
+PATCHES_DIR="${APP_DIR}/patches"
 
 load_env() {
   [[ -f "$ENV_FILE" ]] || { echo "❌ Missing .env.local"; exit 1; }
@@ -52,11 +53,15 @@ install_chart() {
   chart_tgz=$(ls "$CHARTS_DIR"/airflow-*.tgz | head -n1)
   echo "🚀 Installing Airflow using local chart: $(basename "$chart_tgz")"
 
-  # Install and wait for completion
   helm upgrade --install "$AIRFLOW_RELEASE" "$chart_tgz" \
     --namespace "$AIRFLOW_NAMESPACE" \
     -f "$VALUES_DIR/airflow-values.rendered.yaml" \
     --wait --timeout=10m
+}
+
+run_migrations() {
+  echo "⚙️ Running Airflow DB migrations..."
+  bash "$PATCHES_DIR/run-migrate.sh"
 }
 
 wait_for_deployment() {
@@ -66,6 +71,7 @@ wait_for_deployment() {
   kubectl wait --for=condition=available --timeout=600s deployment/airflow-dag-processor -n "$AIRFLOW_NAMESPACE" || true
 }
 
+# === Main execution ===
 load_env
 ensure_namespace
 create_image_pull_secret
@@ -73,5 +79,6 @@ check_tls_secret
 check_chart_exists
 check_values_rendered
 install_chart
+run_migrations
 wait_for_deployment
-echo "✅ Airflow installed in namespace $AIRFLOW_NAMESPACE"
+echo "✅ Airflow installed and migrations applied in namespace $AIRFLOW_NAMESPACE"

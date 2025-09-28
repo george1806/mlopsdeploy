@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-migrate-database
+  namespace: airflow
+  labels:
+    app: airflow
+    component: migrate
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: airflow
+        component: migrate
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: harbor-creds
+      containers:
+        - name: migrate
+          image: harbor.local:30002/mlops/airflow:3.0.2
+          imagePullPolicy: IfNotPresent
+          command: ["bash", "-c"]
+          args: ["airflow db migrate"]
+          env:
+            # Postgres connection
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-metadata
+                  key: connection
+
+            # Broker connection (Redis)
+            - name: AIRFLOW__CELERY__BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-broker-url
+                  key: connection
+
+            # API / JWT / Webserver secret keys
+            - name: AIRFLOW__API__SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-api-secret-key
+                  key: api-secret-key
+
+            - name: AIRFLOW__API_AUTH__JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-jwt-secret
+                  key: jwt-secret
+
+            - name: AIRFLOW__WEBSERVER__SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-webserver-secret-key
+                  key: webserver-secret-key

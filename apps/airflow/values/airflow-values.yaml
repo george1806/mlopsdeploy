@@ -29,24 +29,43 @@ data:
     db: ${AIRFLOW_DB_NAME}
     sslmode: disable
   brokerUrl: redis://:${AIRFLOW_REDIS_PASSWORD}@${AIRFLOW_REDIS_HOST}:${AIRFLOW_REDIS_PORT}/0
+  resultBackendConnection:
+    user: ${AIRFLOW_DB_USER}
+    pass: ${AIRFLOW_DB_PASSWORD}
+    protocol: postgresql
+    host: ${AIRFLOW_DB_HOST}
+    port: ${AIRFLOW_DB_PORT}
+    db: ${AIRFLOW_DB_NAME}
+    sslmode: disable
 
 # Static secret keys for production
-apiSecretKey: airflow-api-secret-key-change-me-in-production
-jwtSecret: airflow-jwt-secret-change-me-in-production
-webserverSecretKey: airflow-webserver-secret-key-change-me-in-production
+fernetKey: "fernet-key-change-me-in-production-32-char-key"
+webserverSecretKey: "webserver-secret-key-change-me-in-production"
+
+# ✅ Disable migrations
+migrateDatabaseJob:
+  enabled: false
+
+checkMigrations:
+  enabled: false
 
 # Ingress via Traefik + TLS
 ingress:
-  enabled: true
-  ingressClassName: traefik
   web:
+    enabled: false
+  apiServer:
+    enabled: true
+    ingressClassName: traefik
+    path: "/"
+    pathType: "Prefix"
     hosts:
-      - ${AIRFLOW_HOST}
-    tls:
-      enabled: true
-      secretName: ${TLS_SECRET_NAME}
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      - name: ${AIRFLOW_HOST}
+        tls:
+          enabled: true
+          secretName: ${TLS_SECRET_NAME}
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
 
 # Persistence for logs
 persistence:
@@ -54,20 +73,96 @@ persistence:
   size: 20Gi
   accessMode: ReadWriteOnce
 
-# OIDC Auth (Keycloak)
+# Component-specific configurations
+scheduler:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+
+# OIDC Auth (Keycloak) + webserver configuration
 webserver:
+  enabled: true
+  replicas: 1
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  service:
+    type: ClusterIP
+    ports:
+      - name: airflow-ui
+        port: 8082
+  defaultUser:
+    enabled: true
+    role: Admin
+    username: admin
+    email: admin@example.com
+    firstName: admin
+    lastName: user
+    password: admin
   env:
     - name: AIRFLOW__WEBSERVER__RBAC
       value: "True"
     - name: AIRFLOW__WEBSERVER__AUTHENTICATE
       value: "True"
     - name: AIRFLOW__WEBSERVER__AUTH_BACKEND
-      value: "airflow.providers.fab.auth_manager"
-    - name: OIDC_CLIENT_ID
-      value: "${KEYCLOAK_CLIENT_ID}"
-    - name: OIDC_CLIENT_SECRET
-      value: "${KEYCLOAK_CLIENT_SECRET}"
-    - name: OIDC_METADATA_URL
-      value: "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration"
-    - name: OIDC_SCOPE
-      value: "openid email profile"
+      value: "airflow.auth.backends.generic_oauth"
+    - name: AIRFLOW__WEBSERVER__OAUTH_PROVIDERS
+      value: |
+        [{
+          "name": "keycloak",
+          "icon": "fa-openid",
+          "token_key": "access_token",
+          "remote_app": {
+            "client_id": "${KEYCLOAK_CLIENT_ID}",
+            "client_secret": "${KEYCLOAK_CLIENT_SECRET}",
+            "api_base_url": "${KEYCLOAK_HOST}",
+            "client_kwargs": {"scope": "openid email profile"},
+            "access_token_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token",
+            "authorize_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth",
+            "request_token_url": null
+          }
+        }]
+
+workers:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+
+triggerer:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+
+dagProcessor:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+
+apiServer:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
