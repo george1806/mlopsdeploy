@@ -16,6 +16,13 @@ executor: ${AIRFLOW_EXECUTOR}
 # Airflow version
 airflowVersion: 3.0.2
 
+# Core configuration for Airflow 3.0
+config:
+  core:
+    auth_manager: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  api:
+    secret_key: "webserver-secret-key-change-me-in-production"
+
 # Disable bundled DB/Redis
 postgresql:
   enabled: false
@@ -44,7 +51,8 @@ data:
 
 # Static secret keys for production
 fernetKey: "fernet-key-change-me-in-production-32-char-key"
-webserverSecretKey: "webserver-secret-key-change-me-in-production"
+# webserverSecretKey moved to config.api.secret_key for Airflow 3.0
+# webserverSecretKey: "webserver-secret-key-change-me-in-production"
 
 # ✅ Disable migrations (handled manually/patch)
 migrateDatabaseJob:
@@ -53,7 +61,7 @@ migrateDatabaseJob:
 checkMigrations:
   enabled: false
 
-# Ingress via Traefik + TLS
+# Ingress via Traefik + TLS (In Airflow 3.0, API server serves both API and Web UI)
 ingress:
   web:
     enabled: false
@@ -112,14 +120,6 @@ webserver:
     firstName: admin
     lastName: user
     password: admin
-  env:
-    - name: AIRFLOW__WEBSERVER__RBAC
-      value: "True"
-    - name: AIRFLOW__WEBSERVER__AUTHENTICATE
-      value: "True"
-    - name: AIRFLOW__WEBSERVER__AUTH_BACKEND
-      value: "airflow.providers.fab.auth_manager.auth.FabAuthManager"
-    # ❌ removed old OAUTH_PROVIDERS block (incompatible with Airflow 3.x)
 
 workers:
   waitForMigrations:
@@ -151,12 +151,15 @@ apiServer:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "250m"
+      cpu: "400m"
     limits:
       memory: "1Gi"
-      cpu: "500m"
+      cpu: "800m"
+  command:
+    - bash
+    - -c
+    - exec airflow api-server --workers 1
   env:
-    - name: AIRFLOW__API__AUTH_BACKEND
-      value: "airflow.api.auth.backend.default"
-    - name: AIRFLOW__API__ENABLE_EXPERIMENTAL_API
-      value: "True"
+    # Fix for Airflow 3.0 uvicorn child process dying issue
+    - name: WEB_CONCURRENCY
+      value: "1"

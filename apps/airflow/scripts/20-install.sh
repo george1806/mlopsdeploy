@@ -34,13 +34,9 @@ check_tls_secret() {
 }
 
 ensure_webserver_secret() {
-  if ! kubectl -n "$AIRFLOW_NAMESPACE" get secret airflow-webserver-secret-key &>/dev/null; then
-    echo "🔑 Creating airflow-webserver-secret-key..."
-    kubectl -n "$AIRFLOW_NAMESPACE" create secret generic airflow-webserver-secret-key \
-      --from-literal=webserver-secret-key=$(openssl rand -hex 32)
-  else
-    echo "✅ airflow-webserver-secret-key already exists"
-  fi
+  # Remove any existing secret to let Helm manage it
+  kubectl -n "$AIRFLOW_NAMESPACE" delete secret airflow-webserver-secret-key --ignore-not-found
+  echo "✅ Webserver secret will be managed by Helm"
 }
 
 check_chart_exists() {
@@ -74,6 +70,11 @@ run_migrations() {
   bash "$PATCHES_DIR/run-migrate.sh"
 }
 
+init_fab_auth() {
+  echo "🔧 Initializing FAB authentication..."
+  bash "$PATCHES_DIR/init-fab-auth.sh"
+}
+
 wait_for_deployment() {
   echo "⏳ Waiting for Airflow deployment to be ready..."
   kubectl wait --for=condition=available --timeout=600s deployment/airflow-scheduler -n "$AIRFLOW_NAMESPACE" || true
@@ -92,4 +93,5 @@ check_values_rendered
 install_chart
 run_migrations
 wait_for_deployment
-echo "✅ Airflow installed and migrations applied in namespace $AIRFLOW_NAMESPACE"
+init_fab_auth
+echo "✅ Airflow installed, migrations applied, and authentication initialized in namespace $AIRFLOW_NAMESPACE"
