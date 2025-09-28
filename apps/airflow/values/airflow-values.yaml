@@ -21,7 +21,7 @@ config:
   core:
     auth_manager: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
   api:
-    secret_key: "webserver-secret-key-change-me-in-production"
+    secret_key: "${AIRFLOW_WEBSERVER_SECRET_KEY}"
 
 # Disable bundled DB/Redis
 postgresql:
@@ -50,7 +50,7 @@ data:
     sslmode: disable
 
 # Static secret keys for production
-fernetKey: "fernet-key-change-me-in-production-32-char-key"
+fernetKey: "${AIRFLOW_FERNET_KEY}"
 # webserverSecretKey moved to config.api.secret_key for Airflow 3.0
 # webserverSecretKey: "webserver-secret-key-change-me-in-production"
 
@@ -115,11 +115,11 @@ webserver:
   defaultUser:
     enabled: true
     role: Admin
-    username: admin
-    email: admin@example.com
-    firstName: admin
-    lastName: user
-    password: admin
+    username: ${AIRFLOW_ADMIN_USERNAME}
+    email: ${AIRFLOW_ADMIN_EMAIL}
+    firstName: ${AIRFLOW_ADMIN_FIRSTNAME}
+    lastName: ${AIRFLOW_ADMIN_LASTNAME}
+    password: ${AIRFLOW_ADMIN_PASSWORD}
 
 workers:
   waitForMigrations:

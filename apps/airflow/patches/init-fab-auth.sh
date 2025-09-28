@@ -23,12 +23,12 @@ init_fab_auth() {
   echo "👤 Creating admin user..."
   kubectl exec -n "$AIRFLOW_NAMESPACE" deployment/airflow-api-server -- \
     airflow users create \
-    --username admin \
-    --firstname Admin \
-    --lastname User \
+    --username "$AIRFLOW_ADMIN_USERNAME" \
+    --firstname "$AIRFLOW_ADMIN_FIRSTNAME" \
+    --lastname "$AIRFLOW_ADMIN_LASTNAME" \
     --role Admin \
-    --email admin@example.com \
-    --password admin
+    --email "$AIRFLOW_ADMIN_EMAIL" \
+    --password "$AIRFLOW_ADMIN_PASSWORD"
 }
 
 # Main execution
