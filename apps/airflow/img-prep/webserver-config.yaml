@@ -36,26 +36,43 @@ data:
                 "jwks_uri": f"{KEYCLOAK_INTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
                 "issuer": f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}",
                 "client_kwargs": {
-                    "scope": "openid email profile",
+                    "scope": "openid email profile groups",
                     "token_endpoint_auth_method": "client_secret_post"
                 },
                 "access_token_params": {
                     "grant_type": "authorization_code"
                 },
                 "request_token_url": None,
+                # Add logout URL to the provider configuration
+                "logout_url": f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout",
             },
         }
     ]
 
+    # Simple logout configuration - redirect to Keycloak logout
+    AUTH_LOGOUT_REDIRECT_URL = f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout?post_logout_redirect_uri=https://airflow.local/auth/login/"
+
     # Additional Flask-AppBuilder security settings
     AUTH_USER_REGISTRATION = True
-    AUTH_USER_REGISTRATION_ROLE = "Admin"
+    AUTH_USER_REGISTRATION_ROLE = "Public"  # Default role for users without specific groups
 
-    # Role mapping for OAuth users
+    # Role mapping for OAuth users - Maps Keycloak groups to Airflow roles
     AUTH_ROLES_MAPPING = {
-        "airflow_user": ["User"],
-        "airflow_admin": ["Admin"],
+        "airflow_admin": ["Admin"],           # Keycloak group -> Airflow role
+        "airflow_op": ["Op"],                 # Operators - can view and manage DAGs
+        "airflow_user": ["User"],             # Basic users - read-only access
+        "airflow_viewer": ["Viewer"],         # View-only access
     }
 
-    # Auto-assign default role to OAuth users (Admin for now, can be customized later)
-    # AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(groups[*], 'airflow_admin') && 'Admin' || 'User'"
+    # Production-ready role assignment with proper error handling
+    # Use JMESPath to map Keycloak groups to Airflow roles
+    AUTH_USER_REGISTRATION_ROLE_JMESPATH = """
+        (groups && length(groups) > `0`) &&
+        (
+            (contains(groups, 'airflow_admin') && 'Admin') ||
+            (contains(groups, 'airflow_op') && 'Op') ||
+            (contains(groups, 'airflow_user') && 'User') ||
+            (contains(groups, 'airflow_viewer') && 'Viewer') ||
+            'Public'
+        ) || 'Public'
+    """

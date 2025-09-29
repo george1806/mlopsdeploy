@@ -87,6 +87,161 @@ KEYCLOAK_CLIENT_SECRET=<secret_from_keycloak>
 
 ---
 
+## 7. Create Groups for Role-Based Access Control
+
+For production environments, set up groups to control user access levels. This section shows exactly what to create in Keycloak.
+
+### 7.1 Create Groups
+
+1. **Login to Keycloak Admin Console**: `https://keycloak.local`
+2. **Switch to `mlops` realm** (not Master realm)
+3. **Go to Groups** (left sidebar)
+4. **Click "Create Group"** and create these 4 groups:
+
+#### Groups to Create:
+
+**Group 1: airflow_admin**
+- **Group Name**: `airflow_admin`
+- **Description**: Full Airflow administrative access
+- **Click "Save"**
+
+**Group 2: airflow_op**
+- **Group Name**: `airflow_op`
+- **Description**: Airflow operators - can manage DAGs and workflows
+- **Click "Save"**
+
+**Group 3: airflow_user**
+- **Group Name**: `airflow_user`
+- **Description**: Standard Airflow users - read-only access
+- **Click "Save"**
+
+**Group 4: airflow_viewer**
+- **Group Name**: `airflow_viewer`
+- **Description**: View-only access to Airflow
+- **Click "Save"**
+
+### 7.2 Configure Group Claims (Critical Step!)
+
+The groups must be included in OAuth tokens for role mapping to work:
+
+#### Option A: Use Built-in Groups Scope (Recommended)
+
+1. **Go to Client Scopes** → **groups**
+2. **Go to Mappers tab**
+3. **Look for existing "groups" mapper** or **Create Mapper** → **By Configuration** → **Group Membership**
+4. **Configure the mapper**:
+   - **Name**: `groups`
+   - **Mapper Type**: `Group Membership`
+   - **Token Claim Name**: `groups`
+   - **Full group path**: **OFF** ⚠️ (Important - use simple group names)
+   - **Add to ID token**: **ON**
+   - **Add to access token**: **ON**
+   - **Add to userinfo**: **ON**
+5. **Click "Save"**
+
+#### Option B: Create Custom Mapper (Alternative)
+
+If you prefer to configure directly on the client:
+
+1. **Go to Clients** → **airflow-client** → **Mappers**
+2. **Create Mapper** → **By Configuration** → **Group Membership**
+3. **Configure the same settings as Option A above**
+
+### 7.3 Add Groups Scope to Client
+
+1. **Go to Clients** → **airflow-client** → **Client Scopes**
+2. **In "Optional Client Scopes"**, find `groups` and click **Add Selected →**
+3. **Move `groups` to "Assigned Default Client Scopes"** (so it's always included in tokens)
+
+### 7.4 Create Test Users and Assign to Groups
+
+#### Create Test Users (Optional but Recommended)
+
+Create users to test different role levels:
+
+1. **Go to Users** → **Add User**
+2. **Create these test users**:
+   ```
+   Username: admin-test
+   Email: admin-test@example.com
+   Email Verified: ON
+
+   Username: operator-test
+   Email: operator-test@example.com
+   Email Verified: ON
+
+   Username: user-test
+   Email: user-test@example.com
+   Email Verified: ON
+
+   Username: viewer-test
+   Email: viewer-test@example.com
+   Email Verified: ON
+
+   Username: no-group-test
+   Email: no-group-test@example.com
+   Email Verified: ON
+   ```
+3. **Set passwords** for each user (go to **Credentials** tab → **Set Password**)
+
+#### Assign Users to Groups
+
+1. **Go to Groups** → Select a group (e.g., `airflow_admin`)
+2. **Members tab** → **Add member**
+3. **Select users** and click **Add**
+
+**Suggested Test Assignment**:
+```
+admin-test → airflow_admin group
+operator-test → airflow_op group
+user-test → airflow_user group
+viewer-test → airflow_viewer group
+no-group-test → (no groups - should get Public role)
+```
+
+### 7.5 Verify Group Configuration
+
+#### Test Token Claims:
+
+1. **Test the OAuth flow** with one of your test users
+2. **Capture the JWT token** (you can see it in browser developer tools)
+3. **Decode the JWT** at https://jwt.io
+4. **Check the payload** should contain:
+   ```json
+   {
+     "groups": ["airflow_admin"],
+     "email": "admin-test@example.com",
+     "preferred_username": "admin-test",
+     "given_name": "Admin",
+     "family_name": "Test"
+   }
+   ```
+
+#### Role Mapping Reference:
+
+Once configured, users will automatically get these Airflow roles:
+
+| Keycloak Group | Airflow Role | Access Level |
+|----------------|--------------|--------------|
+| `airflow_admin` | Admin | Full administrative access |
+| `airflow_op` | Op | Manage DAGs, workflows |
+| `airflow_user` | User | Read-only access |
+| `airflow_viewer` | Viewer | View-only |
+| (no groups) | Public | Minimal access |
+
+### 7.6 Configuration Checklist
+
+Before proceeding to Airflow deployment, verify:
+
+- [ ] **Created 4 groups** in Keycloak (`airflow_admin`, `airflow_op`, `airflow_user`, `airflow_viewer`)
+- [ ] **Configured groups mapper** with correct settings (Full group path = OFF)
+- [ ] **Added groups scope** to airflow-client (in Default Client Scopes)
+- [ ] **Created test users** and assigned them to different groups
+- [ ] **Verified groups appear** in JWT tokens when testing OAuth flow
+- [ ] **Groups scope included** in OAuth request (`openid email profile groups`)
+
+---
+
 # Airflow OAuth Setup Guide
 
 This section covers building and deploying Airflow with Keycloak OAuth authentication for offline production environments.
@@ -146,7 +301,7 @@ OAUTH_PROVIDERS = [
             "jwks_uri": f"{KEYCLOAK_INTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
             "issuer": f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}",
             "client_kwargs": {
-                "scope": "openid email profile",
+                "scope": "openid email profile groups",
                 "token_endpoint_auth_method": "client_secret_post"
             },
             "access_token_params": {
@@ -159,16 +314,31 @@ OAUTH_PROVIDERS = [
 
 # Additional Flask-AppBuilder security settings
 AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = "Admin"
+AUTH_USER_REGISTRATION_ROLE = "Public"  # Default role for users without specific groups
 
-# Role mapping for OAuth users
+# Role mapping for OAuth users - Maps Keycloak groups to Airflow roles
 AUTH_ROLES_MAPPING = {
-    "airflow_user": ["User"],
-    "airflow_admin": ["Admin"],
+    "airflow_admin": ["Admin"],           # Keycloak group -> Airflow role
+    "airflow_op": ["Op"],                 # Operators - can view and manage DAGs
+    "airflow_user": ["User"],             # Basic users - read-only access
+    "airflow_viewer": ["Viewer"],         # View-only access
 }
 
-# Auto-assign default role to OAuth users (Admin for now, can be customized later)
-# AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(groups[*], 'airflow_admin') && 'Admin' || 'User'"
+# Production-ready role assignment with proper error handling
+# Use JMESPath to map Keycloak groups to Airflow roles
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = """
+    (groups && length(groups) > `0`) &&
+    (
+        (contains(groups, 'airflow_admin') && 'Admin') ||
+        (contains(groups, 'airflow_op') && 'Op') ||
+        (contains(groups, 'airflow_user') && 'User') ||
+        (contains(groups, 'airflow_viewer') && 'Viewer') ||
+        'Public'
+    ) || 'Public'
+"""
+
+# OIDC logout configuration - redirect to Keycloak logout then back to login
+AUTH_LOGOUT_REDIRECT_URL = f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout?post_logout_redirect_uri={KEYCLOAK_EXTERNAL_HOST.replace('keycloak.local', 'airflow.local')}/auth/login/"
 ```
 
 **`img-prep/Dockerfile`** - Custom image definition:
@@ -326,6 +496,53 @@ airflow-triggerer-0                      2/2     Running   0          2m
 5. Login with your test user credentials (e.g., `airflow` / `password`)
 6. After successful authentication, you should be redirected back to Airflow dashboard
 
+### 4.2.1 Test Logout Functionality
+
+**Automatic Logout (if working):**
+1. While logged in to Airflow, click the "Logout" button/menu
+2. You should be redirected to Keycloak logout page
+3. After Keycloak logout completes, you should be redirected back to Airflow login page
+4. When you click "Sign In with keycloak" again, you should be prompted for credentials
+
+**Manual Logout (if automatic logout doesn't work):**
+If you still get automatically logged in after logout, you can manually clear the Keycloak session:
+
+1. After logging out from Airflow, manually navigate to:
+   ```
+   https://keycloak.local/realms/mlops/protocol/openid-connect/logout
+   ```
+2. This will clear the Keycloak SSO session
+3. Navigate back to Airflow: `https://airflow.local`
+4. Click "Sign In with keycloak" - you should now be prompted for credentials
+
+**Alternative - Clear Browser Data:**
+- Clear cookies for both `airflow.local` and `keycloak.local` domains
+- Or use browser incognito/private mode for testing
+
+### 4.2.2 Test Role-Based Access Control
+
+1. **Setup Test Users with Different Roles**:
+   - Create users in Keycloak and assign them to different groups
+   - Example: User `admin1` in `airflow_admin` group, User `user1` in `airflow_user` group
+
+2. **Test Admin Access**:
+   - Login with user in `airflow_admin` group
+   - Verify full access to all Airflow features
+   - Check user profile shows "Admin" role
+
+3. **Test User Access**:
+   - Login with user in `airflow_user` group
+   - Verify limited access (should be read-only)
+   - Check user profile shows "User" role
+
+4. **Test Default Access**:
+   - Login with user not in any airflow groups
+   - Should get "Public" role with minimal access
+
+5. **Verify Role Assignment**:
+   - In Airflow, go to **Security** → **List Users**
+   - Check that users have correct roles assigned based on their Keycloak groups
+
 ### 4.3 Verify Logs
 
 Check for any OAuth-related errors:
@@ -357,6 +574,28 @@ You should see clean logs without OAuth errors like:
 **Issue**: OAuth login redirects but shows error page
 **Solution**: Check webserver logs for detailed error messages and verify all secrets are properly configured
 
+**Issue**: After logout, clicking OAuth login button doesn't prompt for credentials (auto-login)
+**Solution**: This is a common issue with Flask-AppBuilder OAuth implementations. Try these approaches:
+- Ensure `AUTH_LOGOUT_REDIRECT_URL` is configured to redirect through Keycloak logout endpoint
+- Manual logout: Navigate to `https://keycloak.local/realms/mlops/protocol/openid-connect/logout` after logging out
+- Clear browser cookies for both domains
+- Use browser incognito/private mode for testing
+- Note: This may require additional custom logout handling depending on your Flask-AppBuilder version
+
+**Issue**: Users always get "Public" role regardless of Keycloak groups
+**Solution**: Check these configuration items:
+- Verify `groups` scope is included in OAuth client configuration
+- Ensure Keycloak client includes groups in token claims (Client Scopes → groups)
+- Check that users are properly assigned to groups in Keycloak
+- Verify JMESPath expression syntax in `AUTH_USER_REGISTRATION_ROLE_JMESPATH`
+- Test group claims by examining JWT token content
+
+**Issue**: JMESPathError when processing user groups
+**Solution**: The JMESPath expression includes null-safety checks, but verify:
+- Groups claim exists in token
+- JMESPath syntax is correct
+- Check Airflow logs for specific error messages
+
 ### Debug Commands
 
 ```bash
@@ -371,6 +610,9 @@ kubectl logs -n airflow deployment/airflow-api-server --tail=50
 
 # Test internal connectivity
 kubectl exec -n airflow deployment/airflow-api-server -- curl -s "http://keycloak.keycloak.svc.cluster.local:8080/realms/mlops/protocol/openid-connect/certs"
+
+# Verify token claims (for debugging role assignment)
+# You can decode JWT tokens at https://jwt.io to verify group claims are included
 ```
 
 ---
