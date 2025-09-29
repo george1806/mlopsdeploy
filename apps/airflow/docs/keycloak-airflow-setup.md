@@ -248,6 +248,119 @@ This section covers building and deploying Airflow with Keycloak OAuth authentic
 
 ---
 
+## Complete Deployment Flow
+
+The deployment process is **fully automated** and follows this sequence:
+
+### 📋 **Phase 1: Preparation**
+1. **Environment Setup**: Configure `.env.local` with all required variables
+2. **Custom Image Build**: Build OAuth-enabled Airflow image and push to Harbor
+3. **Keycloak Client Setup**: Automatically create OAuth client in Keycloak
+
+### 🚀 **Phase 2: Deployment**
+4. **Preparation Script**: `./scripts/10-prep.sh` - Sets up charts and renders configuration
+5. **Installation Script**: `./scripts/20-install.sh` - Deploys complete Airflow stack
+
+### ✅ **Phase 3: Verification**
+6. **OAuth Testing**: Test login, logout, and role-based access control
+
+---
+
+## Script Execution Order
+
+Run the following commands in sequence for complete deployment:
+
+```bash
+# 1. Configure environment (copy and edit .env.production.template)
+cp .env.production.template .env.local
+# Edit .env.local with your values
+
+# 2. Build custom OAuth-enabled Airflow image
+./img-prep/build-custom-image.sh
+
+# 3. Setup Keycloak OAuth client (automated)
+./patches/setup-keycloak-client-simple.sh
+
+# 4. Prepare Airflow deployment (charts, configs)
+./scripts/10-prep.sh
+
+# 5. Deploy complete Airflow stack (fully automated)
+./scripts/20-install.sh
+
+# 6. Verify deployment
+kubectl get pods -n airflow
+```
+
+**🎯 That's it! No manual steps required.**
+
+---
+
+## Detailed Script Functions
+
+### 🔧 **`./img-prep/build-custom-image.sh`**
+- Builds custom Airflow Docker image with OAuth dependencies
+- Installs: `requests-oauthlib`, `flask-oauthlib`, `authlib`
+- Copies `webserver_config.py` with production role mapping
+- Pushes image to Harbor as `airflow:3.0.2-oauth`
+- **Requires**: Docker, Harbor access, `.env.local`
+
+### 🔑 **`./patches/setup-keycloak-client-simple.sh`**
+- Automatically creates `airflow-client` in Keycloak
+- Configures redirect URIs based on `AIRFLOW_HOST` env var
+- Sets up confidential client with authorization code flow
+- **No hardcoded values** - all environment-driven
+- **Requires**: Keycloak admin access, `.env.local`
+
+### 📦 **`./scripts/10-prep.sh`**
+- **Online Mode**: Downloads Airflow Helm chart from repository
+- **Offline Mode**: Checks for pre-downloaded chart in `charts/` directory
+- Renders `airflow-values.yaml` with environment variables
+- Creates necessary directories
+- **Supports**: `OFFLINE_MODE=true` for air-gapped deployments
+
+### 🚀 **`./scripts/20-install.sh`**
+**Complete automated deployment:**
+- Creates `airflow` namespace
+- Sets up Harbor `imagePullSecret`
+- Checks TLS certificate availability
+- **Deploys OAuth ConfigMap** (webserver_config.py)
+- Installs Airflow via Helm with rendered values
+- **Runs database migrations** automatically
+- **Initializes FAB authentication** tables
+- **Creates admin user** from environment variables
+- Waits for all deployments to be ready
+
+---
+
+## Offline Deployment Support
+
+For **air-gapped production environments**:
+
+### 📥 **Pre-requisites**
+1. **Set offline mode** in `.env.local`:
+   ```bash
+   OFFLINE_MODE=true
+   ```
+
+2. **Pre-download Helm chart** (on internet-connected machine):
+   ```bash
+   mkdir -p charts/
+   helm pull apache-airflow/airflow --version 1.17.0 --destination charts/
+   # Copy charts/ directory to offline environment
+   ```
+
+3. **Pre-built images** in Harbor registry:
+   - Base Airflow: `harbor.local:30002/mlops/airflow:3.0.2`
+   - OAuth-enabled: `harbor.local:30002/mlops/airflow:3.0.2-oauth`
+
+### 🔄 **Offline Deployment Flow**
+The scripts **automatically detect** offline mode and skip internet dependencies:
+- **10-prep.sh**: Uses local chart, skips `helm repo add/update`
+- **20-install.sh**: Uses local Harbor images only
+- **No internet required** after initial setup
+
+---
+
 ## Prerequisites
 
 - Keycloak configured as described above

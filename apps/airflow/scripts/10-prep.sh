@@ -16,7 +16,23 @@ prepare_dirs() {
 }
 
 pull_chart() {
-  echo "📦 Pulling Airflow Helm chart v${AIRFLOW_CHART_VERSION}..."
+  echo "📦 Checking for local Airflow Helm chart v${AIRFLOW_CHART_VERSION}..."
+
+  # Check if chart already exists locally
+  if ls "$CHARTS_DIR"/airflow-*.tgz &>/dev/null; then
+    echo "✅ Local chart found, skipping download"
+    return 0
+  fi
+
+  # For offline environments, the chart should be pre-downloaded
+  if [[ "${OFFLINE_MODE:-false}" == "true" ]]; then
+    echo "❌ Offline mode: Chart not found locally. Please download airflow-${AIRFLOW_CHART_VERSION}.tgz to $CHARTS_DIR"
+    echo "💡 Download command: helm pull apache-airflow/airflow --version ${AIRFLOW_CHART_VERSION} --destination $CHARTS_DIR"
+    exit 1
+  fi
+
+  # Online mode: pull from repository
+  echo "🌐 Online mode: pulling from repository..."
   helm repo add apache-airflow https://airflow.apache.org
   helm repo update
   helm pull apache-airflow/airflow \

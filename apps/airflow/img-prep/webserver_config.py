@@ -43,7 +43,7 @@ OAUTH_PROVIDERS = [
 ]
 
 # Simple logout configuration - redirect to Keycloak logout
-AUTH_LOGOUT_REDIRECT_URL = f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout?post_logout_redirect_uri=https://airflow.local/auth/login/"
+AUTH_LOGOUT_REDIRECT_URL = f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout?post_logout_redirect_uri={os.environ.get('AIRFLOW_HOST', 'https://airflow.local')}/auth/login/"
 
 # Additional Flask-AppBuilder security settings
 AUTH_USER_REGISTRATION = True

@@ -39,6 +39,12 @@ ensure_webserver_secret() {
   echo "✅ Webserver secret will be managed by Helm"
 }
 
+deploy_webserver_config() {
+  echo "🔧 Deploying webserver configuration..."
+  kubectl -n "$AIRFLOW_NAMESPACE" apply -f "$APP_DIR/img-prep/webserver-config.yaml"
+  echo "✅ Webserver config deployed"
+}
+
 check_chart_exists() {
   if ! ls "$CHARTS_DIR"/airflow-*.tgz &>/dev/null; then
     echo "❌ No Airflow chart found in $CHARTS_DIR"
@@ -88,6 +94,7 @@ ensure_namespace
 create_image_pull_secret
 check_tls_secret
 ensure_webserver_secret
+deploy_webserver_config
 check_chart_exists
 check_values_rendered
 install_chart
