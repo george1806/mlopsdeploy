@@ -5,7 +5,7 @@ global:
 images:
   airflow:
     repository: ${HARBOR_URL}/${HARBOR_PROJECT}/airflow
-    tag: "${AIRFLOW_TAG}"
+    tag: "${AIRFLOW_TAG}-oauth"
     pullPolicy: IfNotPresent
 
 imagePullSecrets:
@@ -20,6 +20,11 @@ airflowVersion: 3.0.2
 config:
   core:
     auth_manager: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  fab:
+    config_file: /opt/airflow/webserver_config.py
+  webserver:
+    authenticate: True
+    oauth_providers: '[{"name": "keycloak", "token_key": "access_token", "icon": "fa-key", "remote_app": {"client_id": "${KEYCLOAK_CLIENT_ID}", "client_secret": "${KEYCLOAK_CLIENT_SECRET}", "api_base_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/", "client_kwargs": {"scope": "openid email profile"}, "access_token_method": "POST", "access_token_params": {"grant_type": "authorization_code"}, "request_token_url": null, "access_token_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token", "authorize_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth"}}]'
   api:
     secret_key: "${AIRFLOW_WEBSERVER_SECRET_KEY}"
 
@@ -94,7 +99,7 @@ scheduler:
       memory: "512Mi"
       cpu: "250m"
 
-# Webserver (FAB auth, default port 8080)
+# Webserver (OIDC Keycloak auth, default port 8080)
 webserver:
   enabled: true
   replicas: 1
@@ -112,6 +117,13 @@ webserver:
     ports:
       - name: airflow-ui
         port: 8080 # ✅ restored default port
+  env:
+    - name: AIRFLOW__WEBSERVER__AUTHENTICATE
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__RBAC
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__OAUTH_PROVIDERS
+      value: '[{"name": "keycloak", "token_key": "access_token", "icon": "fa-key", "remote_app": {"client_id": "${KEYCLOAK_CLIENT_ID}", "client_secret": "${KEYCLOAK_CLIENT_SECRET}", "api_base_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/", "client_kwargs": {"scope": "openid email profile"}, "access_token_method": "POST", "access_token_params": {"grant_type": "authorization_code"}, "request_token_url": null, "access_token_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token", "authorize_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth"}}]'
   defaultUser:
     enabled: true
     role: Admin
@@ -163,3 +175,29 @@ apiServer:
     # Fix for Airflow 3.0 uvicorn child process dying issue
     - name: WEB_CONCURRENCY
       value: "1"
+    # OAuth configuration for Keycloak integration
+    - name: AIRFLOW__WEBSERVER__AUTHENTICATE
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__RBAC
+      value: "True"
+    - name: AIRFLOW__WEBSERVER__OAUTH_PROVIDERS
+      value: '[{"name": "keycloak", "token_key": "access_token", "icon": "fa-key", "remote_app": {"client_id": "${KEYCLOAK_CLIENT_ID}", "client_secret": "${KEYCLOAK_CLIENT_SECRET}", "api_base_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/", "client_kwargs": {"scope": "openid email profile"}, "access_token_method": "POST", "access_token_params": {"grant_type": "authorization_code"}, "request_token_url": null, "access_token_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token", "authorize_url": "${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth"}}]'
+    # Keycloak environment variables for webserver_config.py
+    - name: KEYCLOAK_HOST
+      value: "${KEYCLOAK_HOST}"
+    - name: KEYCLOAK_INTERNAL_HOST
+      value: "http://keycloak.keycloak.svc.cluster.local:8080"
+    - name: KEYCLOAK_REALM
+      value: "${KEYCLOAK_REALM}"
+    - name: KEYCLOAK_CLIENT_ID
+      value: "${KEYCLOAK_CLIENT_ID}"
+    - name: KEYCLOAK_CLIENT_SECRET
+      value: "${KEYCLOAK_CLIENT_SECRET}"
+  extraVolumes:
+    - name: webserver-config
+      configMap:
+        name: airflow-webserver-config
+  extraVolumeMounts:
+    - name: webserver-config
+      mountPath: /opt/airflow/webserver_config.py
+      subPath: webserver_config.py
