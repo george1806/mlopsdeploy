@@ -193,6 +193,8 @@ apiServer:
       value: "${KEYCLOAK_CLIENT_ID}"
     - name: KEYCLOAK_CLIENT_SECRET
       value: "${KEYCLOAK_CLIENT_SECRET}"
+    - name: AIRFLOW_URL
+      value: "${AIRFLOW_URL}"
   extraVolumes:
     - name: webserver-config
       configMap:

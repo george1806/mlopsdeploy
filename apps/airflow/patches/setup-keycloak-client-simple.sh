@@ -65,8 +65,8 @@ setup_keycloak_client() {
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Content-Type: application/json" \
       -d "{
-        \"redirectUris\": [\"${AIRFLOW_HOST}/oauth-authorized/keycloak\", \"${AIRFLOW_HOST}/auth/oauth-authorized/keycloak\"],
-        \"webOrigins\": [\"${AIRFLOW_HOST}\"]
+        \"redirectUris\": [\"${AIRFLOW_URL}/oauth-authorized/keycloak\", \"${AIRFLOW_URL}/auth/oauth-authorized/keycloak\"],
+        \"webOrigins\": [\"${AIRFLOW_URL}\"]
       }"
     echo "✅ Client redirect URI updated"
     return 0
@@ -85,8 +85,8 @@ setup_keycloak_client() {
       \"enabled\": true,
       \"clientAuthenticatorType\": \"client-secret\",
       \"secret\": \"${KEYCLOAK_CLIENT_SECRET}\",
-      \"redirectUris\": [\"${AIRFLOW_HOST}/oauth-authorized/keycloak\", \"${AIRFLOW_HOST}/auth/oauth-authorized/keycloak\"],
-      \"webOrigins\": [\"${AIRFLOW_HOST}\"],
+      \"redirectUris\": [\"${AIRFLOW_URL}/oauth-authorized/keycloak\", \"${AIRFLOW_URL}/auth/oauth-authorized/keycloak\"],
+      \"webOrigins\": [\"${AIRFLOW_URL}\"],
       \"standardFlowEnabled\": true,
       \"implicitFlowEnabled\": false,
       \"directAccessGrantsEnabled\": true,
