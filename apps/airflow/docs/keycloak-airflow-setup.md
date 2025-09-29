@@ -74,15 +74,15 @@ KEYCLOAK_CLIENT_SECRET=<secret_from_keycloak>
 
 1. Go to **Users → Add User**.
 2. Fill in:
-   - **Username**: `airflow`
-   - **Email**: `airflow@example.com`
-   - **First name**: `Airflow`
-   - **Last name**: `User`
-   - **Email Verified**: **ON**
+    - **Username**: `airflow`
+    - **Email**: `airflow@example.com`
+    - **First name**: `Airflow`
+    - **Last name**: `User`
+    - **Email Verified**: **ON**
 3. Click **Save**.
 4. Go to **Credentials** tab → **Set Password**:
-   - **Password**: `password`
-   - **Temporary**: **OFF**
+    - **Password**: `password`
+    - **Temporary**: **OFF**
 5. Click **Save**.
 
 ---
@@ -101,24 +101,28 @@ For production environments, set up groups to control user access levels. This s
 #### Groups to Create:
 
 **Group 1: airflow_admin**
-- **Group Name**: `airflow_admin`
-- **Description**: Full Airflow administrative access
-- **Click "Save"**
+
+-   **Group Name**: `airflow_admin`
+-   **Description**: Full Airflow administrative access
+-   **Click "Save"**
 
 **Group 2: airflow_op**
-- **Group Name**: `airflow_op`
-- **Description**: Airflow operators - can manage DAGs and workflows
-- **Click "Save"**
+
+-   **Group Name**: `airflow_op`
+-   **Description**: Airflow operators - can manage DAGs and workflows
+-   **Click "Save"**
 
 **Group 3: airflow_user**
-- **Group Name**: `airflow_user`
-- **Description**: Standard Airflow users - read-only access
-- **Click "Save"**
+
+-   **Group Name**: `airflow_user`
+-   **Description**: Standard Airflow users - read-only access
+-   **Click "Save"**
 
 **Group 4: airflow_viewer**
-- **Group Name**: `airflow_viewer`
-- **Description**: View-only access to Airflow
-- **Click "Save"**
+
+-   **Group Name**: `airflow_viewer`
+-   **Description**: View-only access to Airflow
+-   **Click "Save"**
 
 ### 7.2 Configure Group Claims (Critical Step!)
 
@@ -130,13 +134,13 @@ The groups must be included in OAuth tokens for role mapping to work:
 2. **Go to Mappers tab**
 3. **Look for existing "groups" mapper** or **Create Mapper** → **By Configuration** → **Group Membership**
 4. **Configure the mapper**:
-   - **Name**: `groups`
-   - **Mapper Type**: `Group Membership`
-   - **Token Claim Name**: `groups`
-   - **Full group path**: **OFF** ⚠️ (Important - use simple group names)
-   - **Add to ID token**: **ON**
-   - **Add to access token**: **ON**
-   - **Add to userinfo**: **ON**
+    - **Name**: `groups`
+    - **Mapper Type**: `Group Membership`
+    - **Token Claim Name**: `groups`
+    - **Full group path**: **OFF** ⚠️ (Important - use simple group names)
+    - **Add to ID token**: **ON**
+    - **Add to access token**: **ON**
+    - **Add to userinfo**: **ON**
 5. **Click "Save"**
 
 #### Option B: Create Custom Mapper (Alternative)
@@ -161,27 +165,29 @@ Create users to test different role levels:
 
 1. **Go to Users** → **Add User**
 2. **Create these test users**:
-   ```
-   Username: admin-test
-   Email: admin-test@example.com
-   Email Verified: ON
 
-   Username: operator-test
-   Email: operator-test@example.com
-   Email Verified: ON
+    ```
+    Username: admin-test
+    Email: admin-test@example.com
+    Email Verified: ON
 
-   Username: user-test
-   Email: user-test@example.com
-   Email Verified: ON
+    Username: operator-test
+    Email: operator-test@example.com
+    Email Verified: ON
 
-   Username: viewer-test
-   Email: viewer-test@example.com
-   Email Verified: ON
+    Username: user-test
+    Email: user-test@example.com
+    Email Verified: ON
 
-   Username: no-group-test
-   Email: no-group-test@example.com
-   Email Verified: ON
-   ```
+    Username: viewer-test
+    Email: viewer-test@example.com
+    Email Verified: ON
+
+    Username: no-group-test
+    Email: no-group-test@example.com
+    Email Verified: ON
+    ```
+
 3. **Set passwords** for each user (go to **Credentials** tab → **Set Password**)
 
 #### Assign Users to Groups
@@ -191,6 +197,7 @@ Create users to test different role levels:
 3. **Select users** and click **Add**
 
 **Suggested Test Assignment**:
+
 ```
 admin-test → airflow_admin group
 operator-test → airflow_op group
@@ -207,38 +214,38 @@ no-group-test → (no groups - should get Public role)
 2. **Capture the JWT token** (you can see it in browser developer tools)
 3. **Decode the JWT** at https://jwt.io
 4. **Check the payload** should contain:
-   ```json
-   {
-     "groups": ["airflow_admin"],
-     "email": "admin-test@example.com",
-     "preferred_username": "admin-test",
-     "given_name": "Admin",
-     "family_name": "Test"
-   }
-   ```
+    ```json
+    {
+        "groups": ["airflow_admin"],
+        "email": "admin-test@example.com",
+        "preferred_username": "admin-test",
+        "given_name": "Admin",
+        "family_name": "Test"
+    }
+    ```
 
 #### Role Mapping Reference:
 
 Once configured, users will automatically get these Airflow roles:
 
-| Keycloak Group | Airflow Role | Access Level |
-|----------------|--------------|--------------|
-| `airflow_admin` | Admin | Full administrative access |
-| `airflow_op` | Op | Manage DAGs, workflows |
-| `airflow_user` | User | Read-only access |
-| `airflow_viewer` | Viewer | View-only |
-| (no groups) | Public | Minimal access |
+| Keycloak Group   | Airflow Role | Access Level               |
+| ---------------- | ------------ | -------------------------- |
+| `airflow_admin`  | Admin        | Full administrative access |
+| `airflow_op`     | Op           | Manage DAGs, workflows     |
+| `airflow_user`   | User         | Read-only access           |
+| `airflow_viewer` | Viewer       | View-only                  |
+| (no groups)      | Public       | Minimal access             |
 
 ### 7.6 Configuration Checklist
 
 Before proceeding to Airflow deployment, verify:
 
-- [ ] **Created 4 groups** in Keycloak (`airflow_admin`, `airflow_op`, `airflow_user`, `airflow_viewer`)
-- [ ] **Configured groups mapper** with correct settings (Full group path = OFF)
-- [ ] **Added groups scope** to airflow-client (in Default Client Scopes)
-- [ ] **Created test users** and assigned them to different groups
-- [ ] **Verified groups appear** in JWT tokens when testing OAuth flow
-- [ ] **Groups scope included** in OAuth request (`openid email profile groups`)
+-   [ ] **Created 4 groups** in Keycloak (`airflow_admin`, `airflow_op`, `airflow_user`, `airflow_viewer`)
+-   [ ] **Configured groups mapper** with correct settings (Full group path = OFF)
+-   [ ] **Added groups scope** to airflow-client (in Default Client Scopes)
+-   [ ] **Created test users** and assigned them to different groups
+-   [ ] **Verified groups appear** in JWT tokens when testing OAuth flow
+-   [ ] **Groups scope included** in OAuth request (`openid email profile groups`)
 
 ---
 
@@ -253,15 +260,18 @@ This section covers building and deploying Airflow with Keycloak OAuth authentic
 The deployment process is **fully automated** and follows this sequence:
 
 ### 📋 **Phase 1: Preparation**
+
 1. **Environment Setup**: Configure `.env.local` with all required variables
 2. **Custom Image Build**: Build OAuth-enabled Airflow image and push to Harbor
 3. **Keycloak Client Setup**: Automatically create OAuth client in Keycloak
 
 ### 🚀 **Phase 2: Deployment**
+
 4. **Preparation Script**: `./scripts/10-prep.sh` - Sets up charts and renders configuration
 5. **Installation Script**: `./scripts/20-install.sh` - Deploys complete Airflow stack
 
 ### ✅ **Phase 3: Verification**
+
 6. **OAuth Testing**: Test login, logout, and role-based access control
 
 ---
@@ -298,37 +308,42 @@ kubectl get pods -n airflow
 ## Detailed Script Functions
 
 ### 🔧 **`./img-prep/build-custom-image.sh`**
-- Builds custom Airflow Docker image with OAuth dependencies
-- Installs: `requests-oauthlib`, `flask-oauthlib`, `authlib`
-- Copies `webserver_config.py` with production role mapping
-- Pushes image to Harbor as `airflow:3.0.2-oauth`
-- **Requires**: Docker, Harbor access, `.env.local`
+
+-   Builds custom Airflow Docker image with OAuth dependencies
+-   Installs: `requests-oauthlib`, `flask-oauthlib`, `authlib`
+-   Copies `webserver_config.py` with production role mapping
+-   Pushes image to Harbor as `airflow:3.0.2-oauth`
+-   **Requires**: Docker, Harbor access, `.env.local`
 
 ### 🔑 **`./patches/setup-keycloak-client-simple.sh`**
-- Automatically creates `airflow-client` in Keycloak
-- Configures redirect URIs based on `AIRFLOW_HOST` env var
-- Sets up confidential client with authorization code flow
-- **No hardcoded values** - all environment-driven
-- **Requires**: Keycloak admin access, `.env.local`
+
+-   Automatically creates `airflow-client` in Keycloak
+-   Configures redirect URIs based on `AIRFLOW_HOST` env var
+-   Sets up confidential client with authorization code flow
+-   **No hardcoded values** - all environment-driven
+-   **Requires**: Keycloak admin access, `.env.local`
 
 ### 📦 **`./scripts/10-prep.sh`**
-- **Online Mode**: Downloads Airflow Helm chart from repository
-- **Offline Mode**: Checks for pre-downloaded chart in `charts/` directory
-- Renders `airflow-values.yaml` with environment variables
-- Creates necessary directories
-- **Supports**: `OFFLINE_MODE=true` for air-gapped deployments
+
+-   **Online Mode**: Downloads Airflow Helm chart from repository
+-   **Offline Mode**: Checks for pre-downloaded chart in `charts/` directory
+-   Renders `airflow-values.yaml` with environment variables
+-   Creates necessary directories
+-   **Supports**: `OFFLINE_MODE=true` for air-gapped deployments
 
 ### 🚀 **`./scripts/20-install.sh`**
+
 **Complete automated deployment:**
-- Creates `airflow` namespace
-- Sets up Harbor `imagePullSecret`
-- Checks TLS certificate availability
-- **Deploys OAuth ConfigMap** (webserver_config.py)
-- Installs Airflow via Helm with rendered values
-- **Runs database migrations** automatically
-- **Initializes FAB authentication** tables
-- **Creates admin user** from environment variables
-- Waits for all deployments to be ready
+
+-   Creates `airflow` namespace
+-   Sets up Harbor `imagePullSecret`
+-   Checks TLS certificate availability
+-   **Deploys OAuth ConfigMap** (webserver_config.py)
+-   Installs Airflow via Helm with rendered values
+-   **Runs database migrations** automatically
+-   **Initializes FAB authentication** tables
+-   **Creates admin user** from environment variables
+-   Waits for all deployments to be ready
 
 ---
 
@@ -337,42 +352,48 @@ kubectl get pods -n airflow
 For **air-gapped production environments**:
 
 ### 📥 **Pre-requisites**
+
 1. **Set offline mode** in `.env.local`:
-   ```bash
-   OFFLINE_MODE=true
-   ```
+
+    ```bash
+    OFFLINE_MODE=true
+    ```
 
 2. **Pre-download Helm chart** (on internet-connected machine):
-   ```bash
-   mkdir -p charts/
-   helm pull apache-airflow/airflow --version 1.17.0 --destination charts/
-   # Copy charts/ directory to offline environment
-   ```
+
+    ```bash
+    mkdir -p charts/
+    helm pull apache-airflow/airflow --version 1.17.0 --destination charts/
+    # Copy charts/ directory to offline environment
+    ```
 
 3. **Pre-built images** in Harbor registry:
-   - Base Airflow: `harbor.local:30002/mlops/airflow:3.0.2`
-   - OAuth-enabled: `harbor.local:30002/mlops/airflow:3.0.2-oauth`
+    - Base Airflow: `harbor.local:30002/mlops/airflow:3.0.2`
+    - OAuth-enabled: `harbor.local:30002/mlops/airflow:3.0.2-oauth`
 
 ### 🔄 **Offline Deployment Flow**
+
 The scripts **automatically detect** offline mode and skip internet dependencies:
-- **10-prep.sh**: Uses local chart, skips `helm repo add/update`
-- **20-install.sh**: Uses local Harbor images only
-- **No internet required** after initial setup
+
+-   **10-prep.sh**: Uses local chart, skips `helm repo add/update`
+-   **20-install.sh**: Uses local Harbor images only
+-   **No internet required** after initial setup
 
 ---
 
 ## Prerequisites
 
-- Keycloak configured as described above
-- Docker and Harbor registry access
-- Kubernetes cluster with kubectl access
-- Helm installed
+-   Keycloak configured as described above
+-   Docker and Harbor registry access
+-   Kubernetes cluster with kubectl access
+-   Helm installed
 
 ---
 
 ## Step 1: Build Custom Airflow Image with OAuth Dependencies
 
 ### 1.1 Navigate to Airflow Directory
+
 ```bash
 cd /path/to/mlopsdeploy/apps/airflow
 ```
@@ -382,6 +403,7 @@ cd /path/to/mlopsdeploy/apps/airflow
 Ensure the following files exist with correct OAuth configuration:
 
 **`img-prep/webserver_config.py`** - Main OAuth configuration:
+
 ```python
 # -*- coding: utf-8 -*-
 """
@@ -455,6 +477,7 @@ AUTH_LOGOUT_REDIRECT_URL = f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/pr
 ```
 
 **`img-prep/Dockerfile`** - Custom image definition:
+
 ```dockerfile
 FROM harbor.local:30002/mlops/airflow:3.0.2
 
@@ -479,16 +502,19 @@ COPY --chown=airflow:root webserver_config.py /opt/airflow/webserver_config.py
 ### 1.3 Build and Push Custom Image
 
 Execute the build script:
+
 ```bash
 ./img-prep/build-custom-image.sh
 ```
 
 This script will:
-- Load environment variables from `.env.local`
-- Build the custom Docker image with OAuth dependencies
-- Push the image to Harbor registry as `harbor.local:30002/mlops/airflow:3.0.2-oauth`
+
+-   Load environment variables from `.env.local`
+-   Build the custom Docker image with OAuth dependencies
+-   Push the image to Harbor registry as `harbor.local:30002/mlops/airflow:3.0.2-oauth`
 
 **Expected Output:**
+
 ```
 🚀 Building custom Airflow image with OAuth dependencies...
 ✅ Loaded environment from /home/user/mlopsdeploy/apps/airflow/.env.local
@@ -539,45 +565,51 @@ TLS_SECRET_NAME=airflow-tls
 ### 3.1 Run Preparation Script
 
 Execute the preparation script to set up the environment:
+
 ```bash
 ./scripts/10-prep.sh
 ```
 
 This script will:
-- Create the `airflow` namespace
-- Set up Harbor image pull secrets
-- Process environment variables from `.env.local`
+
+-   Create the `airflow` namespace
+-   Set up Harbor image pull secrets
+-   Process environment variables from `.env.local`
 
 ### 3.2 Deploy Airflow
 
 Execute the installation script:
+
 ```bash
 ./scripts/20-install.sh
 ```
 
 This script will:
-- Create necessary Kubernetes secrets
-- Deploy Airflow using Helm with the custom OAuth-enabled image
-- Configure ingress with TLS
-- Set up all OAuth environment variables
+
+-   Create necessary Kubernetes secrets
+-   Deploy Airflow using Helm with the custom OAuth-enabled image
+-   Configure ingress with TLS
+-   Set up all OAuth environment variables
 
 ### 3.3 Create OAuth Configuration ConfigMap
 
 Create the webserver configuration ConfigMap:
+
 ```bash
 kubectl apply -f img-prep/webserver-config.yaml
 ```
 
 The `webserver-config.yaml` should contain:
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: airflow-webserver-config
-  namespace: airflow
+    name: airflow-webserver-config
+    namespace: airflow
 data:
-  webserver_config.py: |
-    # [Same OAuth configuration as in img-prep/webserver_config.py]
+    webserver_config.py: |
+        # [Same OAuth configuration as in img-prep/webserver_config.py]
 ```
 
 ---
@@ -587,11 +619,13 @@ data:
 ### 4.1 Check Deployment Status
 
 Wait for all pods to be ready:
+
 ```bash
 kubectl get pods -n airflow
 ```
 
 Expected output:
+
 ```
 NAME                                     READY   STATUS    RESTARTS   AGE
 airflow-api-server-xxx-xxx               1/1     Running   0          2m
@@ -612,6 +646,7 @@ airflow-triggerer-0                      2/2     Running   0          2m
 ### 4.2.1 Test Logout Functionality
 
 **Automatic Logout (if working):**
+
 1. While logged in to Airflow, click the "Logout" button/menu
 2. You should be redirected to Keycloak logout page
 3. After Keycloak logout completes, you should be redirected back to Airflow login page
@@ -621,53 +656,60 @@ airflow-triggerer-0                      2/2     Running   0          2m
 If you still get automatically logged in after logout, you can manually clear the Keycloak session:
 
 1. After logging out from Airflow, manually navigate to:
-   ```
-   https://keycloak.local/realms/mlops/protocol/openid-connect/logout
-   ```
+    ```
+    https://keycloak.local/realms/mlops/protocol/openid-connect/logout
+    ```
 2. This will clear the Keycloak SSO session
 3. Navigate back to Airflow: `https://airflow.local`
 4. Click "Sign In with keycloak" - you should now be prompted for credentials
 
 **Alternative - Clear Browser Data:**
-- Clear cookies for both `airflow.local` and `keycloak.local` domains
-- Or use browser incognito/private mode for testing
+
+-   Clear cookies for both `airflow.local` and `keycloak.local` domains
+-   Or use browser incognito/private mode for testing
 
 ### 4.2.2 Test Role-Based Access Control
 
 1. **Setup Test Users with Different Roles**:
-   - Create users in Keycloak and assign them to different groups
-   - Example: User `admin1` in `airflow_admin` group, User `user1` in `airflow_user` group
+
+    - Create users in Keycloak and assign them to different groups
+    - Example: User `admin1` in `airflow_admin` group, User `user1` in `airflow_user` group
 
 2. **Test Admin Access**:
-   - Login with user in `airflow_admin` group
-   - Verify full access to all Airflow features
-   - Check user profile shows "Admin" role
+
+    - Login with user in `airflow_admin` group
+    - Verify full access to all Airflow features
+    - Check user profile shows "Admin" role
 
 3. **Test User Access**:
-   - Login with user in `airflow_user` group
-   - Verify limited access (should be read-only)
-   - Check user profile shows "User" role
+
+    - Login with user in `airflow_user` group
+    - Verify limited access (should be read-only)
+    - Check user profile shows "User" role
 
 4. **Test Default Access**:
-   - Login with user not in any airflow groups
-   - Should get "Public" role with minimal access
+
+    - Login with user not in any airflow groups
+    - Should get "Public" role with minimal access
 
 5. **Verify Role Assignment**:
-   - In Airflow, go to **Security** → **List Users**
-   - Check that users have correct roles assigned based on their Keycloak groups
+    - In Airflow, go to **Security** → **List Users**
+    - Check that users have correct roles assigned based on their Keycloak groups
 
 ### 4.3 Verify Logs
 
 Check for any OAuth-related errors:
+
 ```bash
 kubectl logs -n airflow deployment/airflow-api-server --tail=20
 ```
 
 You should see clean logs without OAuth errors like:
-- No "Missing jwks_uri in metadata" errors
-- No "404 Client Error" for userinfo URLs
-- No "JMESPathTypeError" errors
-- Successful OAuth redirects (302 Found responses)
+
+-   No "Missing jwks_uri in metadata" errors
+-   No "404 Client Error" for userinfo URLs
+-   No "JMESPathTypeError" errors
+-   Successful OAuth redirects (302 Found responses)
 
 ---
 
@@ -689,25 +731,28 @@ You should see clean logs without OAuth errors like:
 
 **Issue**: After logout, clicking OAuth login button doesn't prompt for credentials (auto-login)
 **Solution**: This is a common issue with Flask-AppBuilder OAuth implementations. Try these approaches:
-- Ensure `AUTH_LOGOUT_REDIRECT_URL` is configured to redirect through Keycloak logout endpoint
-- Manual logout: Navigate to `https://keycloak.local/realms/mlops/protocol/openid-connect/logout` after logging out
-- Clear browser cookies for both domains
-- Use browser incognito/private mode for testing
-- Note: This may require additional custom logout handling depending on your Flask-AppBuilder version
+
+-   Ensure `AUTH_LOGOUT_REDIRECT_URL` is configured to redirect through Keycloak logout endpoint
+-   Manual logout: Navigate to `https://keycloak.local/realms/mlops/protocol/openid-connect/logout` after logging out
+-   Clear browser cookies for both domains
+-   Use browser incognito/private mode for testing
+-   Note: This may require additional custom logout handling depending on your Flask-AppBuilder version
 
 **Issue**: Users always get "Public" role regardless of Keycloak groups
 **Solution**: Check these configuration items:
-- Verify `groups` scope is included in OAuth client configuration
-- Ensure Keycloak client includes groups in token claims (Client Scopes → groups)
-- Check that users are properly assigned to groups in Keycloak
-- Verify JMESPath expression syntax in `AUTH_USER_REGISTRATION_ROLE_JMESPATH`
-- Test group claims by examining JWT token content
+
+-   Verify `groups` scope is included in OAuth client configuration
+-   Ensure Keycloak client includes groups in token claims (Client Scopes → groups)
+-   Check that users are properly assigned to groups in Keycloak
+-   Verify JMESPath expression syntax in `AUTH_USER_REGISTRATION_ROLE_JMESPATH`
+-   Test group claims by examining JWT token content
 
 **Issue**: JMESPathError when processing user groups
 **Solution**: The JMESPath expression includes null-safety checks, but verify:
-- Groups claim exists in token
-- JMESPath syntax is correct
-- Check Airflow logs for specific error messages
+
+-   Groups claim exists in token
+-   JMESPath syntax is correct
+-   Check Airflow logs for specific error messages
 
 ### Debug Commands
 
@@ -735,16 +780,18 @@ kubectl exec -n airflow deployment/airflow-api-server -- curl -s "http://keycloa
 ### Security Hardening
 
 1. **Role Assignment**: Customize `AUTH_USER_REGISTRATION_ROLE` based on your needs:
-   - Set to "User" for restricted access by default
-   - Implement proper JMESPath expressions for group-based roles
+
+    - Set to "User" for restricted access by default
+    - Implement proper JMESPath expressions for group-based roles
 
 2. **Client Secret Management**:
-   - Use Kubernetes secrets for sensitive values
-   - Rotate client secrets regularly
+
+    - Use Kubernetes secrets for sensitive values
+    - Rotate client secrets regularly
 
 3. **TLS Configuration**:
-   - Ensure all external communications use HTTPS
-   - Verify certificate validity
+    - Ensure all external communications use HTTPS
+    - Verify certificate validity
 
 ### Offline Deployment
 
@@ -760,10 +807,10 @@ For completely offline environments:
 
 After following this guide, you will have:
 
-- ✅ Custom Airflow image with OAuth dependencies built and pushed to Harbor
-- ✅ Complete OAuth configuration for Keycloak integration
-- ✅ Production-ready Kubernetes deployment
-- ✅ Working end-to-end OAuth authentication flow
-- ✅ No manual patches or interventions required
+-   ✅ Custom Airflow image with OAuth dependencies built and pushed to Harbor
+-   ✅ Complete OAuth configuration for Keycloak integration
+-   ✅ Production-ready Kubernetes deployment
+-   ✅ Working end-to-end OAuth authentication flow
+-   ✅ No manual patches or interventions required
 
 The system is designed for offline production deployment with minimal configuration changes needed between environments.
