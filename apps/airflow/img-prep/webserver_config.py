@@ -10,8 +10,8 @@ from flask_appbuilder.security.manager import AUTH_OAUTH
 AUTH_TYPE = AUTH_OAUTH
 
 # OAuth configuration - manual endpoints to avoid metadata discovery issues
-KEYCLOAK_INTERNAL_HOST = os.environ.get('KEYCLOAK_INTERNAL_HOST', 'http://keycloak.keycloak.svc.cluster.local:8080')
-KEYCLOAK_EXTERNAL_HOST = os.environ.get('KEYCLOAK_HOST', 'https://keycloak.local')
+KEYCLOAK_INTERNAL_HOST = os.environ.get('KEYCLOAK_INTERNAL_HOST', 'http://dev-keycloak.keycloak-dev.svc.cluster.local:8080')
+KEYCLOAK_EXTERNAL_HOST = os.environ.get('KEYCLOAK_HOST', 'http://keycloak.dev.vtz.corp')
 KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'mlops')
 
 OAUTH_PROVIDERS = [

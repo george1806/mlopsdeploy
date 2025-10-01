@@ -7,6 +7,10 @@ images:
     repository: ${HARBOR_URL}/${HARBOR_PROJECT}/airflow
     tag: "${AIRFLOW_TAG}-oauth"
     pullPolicy: IfNotPresent
+  statsd:
+    repository: ${HARBOR_URL}/${HARBOR_PROJECT}/statsd-exporter
+    tag: "v0.28.0"
+    pullPolicy: IfNotPresent
 
 imagePullSecrets:
   - name: harbor-creds
@@ -72,7 +76,7 @@ ingress:
     enabled: false
   apiServer:
     enabled: true
-    ingressClassName: traefik
+    ingressClassName: traefik-dev
     path: "/"
     pathType: "Prefix"
     hosts:
@@ -90,7 +94,20 @@ persistence:
   size: 20Gi
   accessMode: ReadWriteOnce
 
-# Component-specific configurations
+podSecurityContext:
+  enabled: true
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 50000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
 scheduler:
   waitForMigrations:
     enabled: false
@@ -102,7 +119,6 @@ scheduler:
 # Webserver (OIDC Keycloak auth, default port 8080)
 webserver:
   enabled: true
-  replicas: 1
   waitForMigrations:
     enabled: false
   resources:

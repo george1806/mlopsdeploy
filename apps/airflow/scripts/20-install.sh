@@ -83,9 +83,9 @@ init_fab_auth() {
 
 wait_for_deployment() {
   echo "⏳ Waiting for Airflow deployment to be ready..."
-  kubectl wait --for=condition=available --timeout=600s deployment/airflow-scheduler -n "$AIRFLOW_NAMESPACE" || true
-  kubectl wait --for=condition=available --timeout=600s deployment/airflow-api-server -n "$AIRFLOW_NAMESPACE" || true
-  kubectl wait --for=condition=available --timeout=600s deployment/airflow-dag-processor -n "$AIRFLOW_NAMESPACE" || true
+  kubectl wait --for=condition=available --timeout=600s deployment/airflow-cv-scheduler -n "$AIRFLOW_NAMESPACE" || true
+  kubectl wait --for=condition=available --timeout=600s deployment/airflow-cv-api-server -n "$AIRFLOW_NAMESPACE" || true
+  kubectl wait --for=condition=available --timeout=600s deployment/airflow-cv-dag-processor -n "$AIRFLOW_NAMESPACE" || true
 }
 
 # === Main execution ===
