@@ -20,6 +20,9 @@ data:
     KEYCLOAK_INTERNAL_HOST = os.environ.get('KEYCLOAK_INTERNAL_HOST', 'http://dev-keycloak.keycloak-dev.svc.cluster.local:8080')
     KEYCLOAK_EXTERNAL_HOST = os.environ.get('KEYCLOAK_HOST', 'http://keycloak.dev.vtz.corp')
     KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'mlops')
+    # Issuer must match what Keycloak sends in the iss claim (external URL as seen by users)
+    # Even though validation is server-side, the iss claim is based on the frontend URL
+    KEYCLOAK_ISSUER = os.environ.get('KEYCLOAK_ISSUER', f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}")
 
     OAUTH_PROVIDERS = [
         {
@@ -34,7 +37,7 @@ data:
                 "authorize_url": f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth",
                 "userinfo_url": f"{KEYCLOAK_INTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo",
                 "jwks_uri": f"{KEYCLOAK_INTERNAL_HOST}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
-                "issuer": f"{KEYCLOAK_EXTERNAL_HOST}/realms/{KEYCLOAK_REALM}",
+                "issuer": KEYCLOAK_ISSUER,
                 "client_kwargs": {
                     "scope": "openid email profile groups",
                     "token_endpoint_auth_method": "client_secret_post"

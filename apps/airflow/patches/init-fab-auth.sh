@@ -16,12 +16,12 @@ init_fab_auth() {
   echo "🔧 Initializing FAB authentication tables..."
 
   # Reset FAB database to ensure all auth tables exist
-  kubectl exec -n "$AIRFLOW_NAMESPACE" deployment/airflow-api-server -- \
+  kubectl exec -n "$AIRFLOW_NAMESPACE" deployment/airflow-cv-api-server -- \
     airflow fab-db reset --yes
 
   # Create admin user
   echo "👤 Creating admin user..."
-  kubectl exec -n "$AIRFLOW_NAMESPACE" deployment/airflow-api-server -- \
+  kubectl exec -n "$AIRFLOW_NAMESPACE" deployment/airflow-cv-api-server -- \
     airflow users create \
     --username "$AIRFLOW_ADMIN_USERNAME" \
     --firstname "$AIRFLOW_ADMIN_FIRSTNAME" \

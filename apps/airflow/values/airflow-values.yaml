@@ -202,7 +202,7 @@ apiServer:
     - name: KEYCLOAK_HOST
       value: "${KEYCLOAK_HOST}"
     - name: KEYCLOAK_INTERNAL_HOST
-      value: "http://keycloak.keycloak.svc.cluster.local:8080"
+      value: "${KEYCLOAK_INTERNAL_HOST}"
     - name: KEYCLOAK_REALM
       value: "${KEYCLOAK_REALM}"
     - name: KEYCLOAK_CLIENT_ID
